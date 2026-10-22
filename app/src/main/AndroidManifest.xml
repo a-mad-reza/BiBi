@@ -16,6 +16,24 @@
         android:exported="false" />
 
     <activity
+        android:name=".DialActivity"
+        android:exported="true"
+        android:screenOrientation="portrait">
+
+        <intent-filter>
+            <action android:name="android.intent.action.DIAL" />
+            <category android:name="android.intent.category.DEFAULT" />
+        </intent-filter>
+
+        <intent-filter>
+            <action android:name="android.intent.action.DIAL" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <data android:scheme="tel" />
+        </intent-filter>
+
+    </activity>
+
+    <activity
         android:name=".CallActivity"
         android:exported="true"
         android:excludeFromRecents="true"
@@ -57,17 +75,6 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.HOME" />
             <category android:name="android.intent.category.DEFAULT" />
-        </intent-filter>
-
-        <intent-filter>
-            <action android:name="android.intent.action.DIAL" />
-            <category android:name="android.intent.category.DEFAULT" />
-        </intent-filter>
-
-        <intent-filter>
-            <action android:name="android.intent.action.DIAL" />
-            <category android:name="android.intent.category.DEFAULT" />
-            <data android:scheme="tel" />
         </intent-filter>
 
     </activity>
