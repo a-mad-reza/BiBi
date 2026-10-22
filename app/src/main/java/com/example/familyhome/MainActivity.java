@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.BatteryManager;
@@ -20,7 +19,8 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
+import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -31,11 +31,10 @@ public class MainActivity extends Activity {
 
     private SharedPreferences prefs;
     private final Handler handler = new Handler(Looper.getMainLooper());
-
     private TextView batteryText;
+
     private int tapCount = 0;
     private long firstTapTime = 0;
-    private boolean callStarted = false;
 
     private int dp(float value) {
         return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
@@ -49,16 +48,37 @@ public class MainActivity extends Activity {
 
         getWindow().setStatusBarColor(Color.rgb(24, 45, 65));
         getWindow().setNavigationBarColor(Color.rgb(24, 45, 65));
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
+        hideSystemBars();
         buildHome();
+    }
+
+    private void hideSystemBars() {
+        if (Build.VERSION.SDK_INT >= 19) {
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            );
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            );
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
+        hideSystemBars();
+
         if (prefs != null && batteryText != null) {
-            updateBattery();
             buildHome();
         }
     }
@@ -76,42 +96,38 @@ public class MainActivity extends Activity {
         v.setTextSize(size);
         v.setTextColor(color);
         v.setGravity(Gravity.CENTER);
-        v.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        v.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
         return v;
     }
 
     private void buildHome() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(10), dp(8), dp(10), dp(8));
-        root.setBackgroundColor(Color.rgb(240, 245, 248));
+        root.setPadding(dp(3), dp(3), dp(3), dp(3));
+        root.setBackgroundColor(Color.BLACK);
 
-        batteryText = makeText("", 18, Color.WHITE);
-        batteryText.setPadding(dp(12), dp(10), dp(12), dp(10));
-        batteryText.setBackground(rounded(Color.rgb(37, 75, 105), 14));
+        batteryText = makeText("", 16, Color.WHITE);
+        batteryText.setPadding(dp(8), 0, dp(8), 0);
+        batteryText.setBackground(rounded(Color.rgb(37, 75, 105), 8));
         batteryText.setOnClickListener(v -> batteryTapped());
 
         root.addView(batteryText, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(48)));
-
-        TextView hint = makeText("برای تماس، عکس فرد را چند لحظه نگه دارید", 15,
-                Color.rgb(40, 60, 75));
-        LinearLayout.LayoutParams hintParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(44));
-        hintParams.topMargin = dp(4);
-        root.addView(hint, hintParams);
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(34)));
 
         GridLayout grid = new GridLayout(this);
         grid.setColumnCount(3);
         grid.setRowCount(4);
+        grid.setAlignmentMode(GridLayout.ALIGN_BOUNDS);
         grid.setUseDefaultMargins(false);
 
-        for (int i = 0; i < 12; i++) {
-            grid.addView(makeContactTile(i), new GridLayout.LayoutParams());
-        }
+        LinearLayout.LayoutParams gridParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
+        gridParams.topMargin = dp(2);
+        root.addView(grid, gridParams);
 
-        root.addView(grid, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        for (int i = 0; i < 12; i++) {
+            grid.addView(makeContactTile(i));
+        }
 
         setContentView(root);
         updateBattery();
@@ -121,28 +137,27 @@ public class MainActivity extends Activity {
         LinearLayout tile = new LinearLayout(this);
         tile.setOrientation(LinearLayout.VERTICAL);
         tile.setGravity(Gravity.CENTER);
-        tile.setPadding(dp(3), dp(5), dp(3), dp(5));
-        tile.setBackground(rounded(Color.WHITE, 16));
+        tile.setPadding(0, 0, 0, 0);
+        tile.setBackground(rounded(Color.rgb(25, 25, 25), 3));
+        tile.setClipToOutline(true);
 
         GridLayout.LayoutParams params = new GridLayout.LayoutParams();
         params.width = 0;
         params.height = 0;
         params.columnSpec = GridLayout.spec(index % 3, 1f);
         params.rowSpec = GridLayout.spec(index / 3, 1f);
-        params.setMargins(dp(4), dp(4), dp(4), dp(4));
+        params.setMargins(dp(2), dp(2), dp(2), dp(2));
         tile.setLayoutParams(params);
 
-        String name = prefs.getString("name_" + index, "");
         String photo = prefs.getString("photo_" + index, "");
 
         ImageView image = new ImageView(this);
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        image.setBackground(rounded(Color.rgb(218, 231, 239), 50));
-        image.setClipToOutline(true);
+        image.setBackgroundColor(Color.rgb(218, 231, 239));
 
-        LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(
-                dp(68), dp(68));
-        imageParams.gravity = Gravity.CENTER;
+        tile.addView(image, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
 
         boolean hasPhoto = false;
 
@@ -156,26 +171,12 @@ public class MainActivity extends Activity {
         }
 
         if (!hasPhoto) {
-            TextView initials = makeText(
-                    name.trim().isEmpty() ? String.valueOf(index + 1)
-                            : name.trim().substring(0, 1),
-                    30, Color.rgb(35, 75, 105));
-            initials.setBackground(rounded(Color.rgb(218, 231, 239), 50));
-            tile.addView(initials, imageParams);
-        } else {
-            tile.addView(image, imageParams);
+            image.setImageDrawable(null);
+            image.setBackground(rounded(Color.rgb(218, 231, 239), 3));
+            image.setScaleType(ImageView.ScaleType.CENTER);
+            image.setImageResource(android.R.drawable.ic_menu_camera);
+            image.setColorFilter(Color.rgb(35, 75, 105));
         }
-
-        String displayName = name.trim().isEmpty()
-                ? "مخاطب " + (index + 1) : name.trim();
-
-        TextView label = makeText(displayName, 14, Color.rgb(30, 45, 55));
-        label.setMaxLines(2);
-
-        LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(42));
-        labelParams.topMargin = dp(4);
-        tile.addView(label, labelParams);
 
         tile.setOnTouchListener(new View.OnTouchListener() {
             private final Handler touchHandler = new Handler(Looper.getMainLooper());
@@ -201,12 +202,6 @@ public class MainActivity extends Activity {
                         || event.getAction() == MotionEvent.ACTION_CANCEL) {
                     if (longPress != null) {
                         touchHandler.removeCallbacks(longPress);
-                    }
-
-                    if (!triggered && event.getAction() == MotionEvent.ACTION_UP) {
-                        Toast.makeText(MainActivity.this,
-                                "برای تماس، کمی بیشتر نگه دارید",
-                                Toast.LENGTH_SHORT).show();
                     }
                     return true;
                 }
@@ -246,9 +241,9 @@ public class MainActivity extends Activity {
                 Color.rgb(35, 75, 105));
         box.addView(passwordHint);
 
-        android.widget.EditText input = new android.widget.EditText(this);
+        EditText input = new EditText(this);
         input.setHint("رمز را وارد کنید");
-        input.setInputType( android.text.InputType.TYPE_CLASS_NUMBER
+        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
                 | android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
         input.setGravity(Gravity.CENTER);
         box.addView(input);
@@ -263,7 +258,6 @@ public class MainActivity extends Activity {
         dialog.setOnShowListener(d -> {
             final Runnable timeout = dialog::dismiss;
             handler.postDelayed(timeout, 15000);
-
             dialog.setOnDismissListener(x -> handler.removeCallbacks(timeout));
 
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
@@ -286,18 +280,17 @@ public class MainActivity extends Activity {
         String name = prefs.getString("name_" + index, "");
         String phone = prefs.getString("phone_" + index, "");
 
-        if (name.trim().isEmpty()) {
-            name = "مخاطب " + (index + 1);
-        }
-
         if (phone.trim().isEmpty()) {
-            Toast.makeText(this, "ابتدا شماره این مخاطب را در تنظیمات وارد کنید",
+            Toast.makeText(this, "شماره این مخاطب هنوز تنظیم نشده است",
                     Toast.LENGTH_LONG).show();
             return;
         }
 
+        String displayName = name.trim().isEmpty()
+                ? "این مخاطب" : name.trim();
+
         new AlertDialog.Builder(this)
-                .setTitle("تماس با " + name)
+                .setTitle("تماس با " + displayName)
                 .setMessage("آیا می‌خواهید تماس بگیرید؟")
                 .setNegativeButton("لغو", null)
                 .setPositiveButton("تماس", (dialog, which) -> makeCall(phone))
@@ -340,13 +333,12 @@ public class MainActivity extends Activity {
         }
 
         int threshold = prefs.getInt("battery_threshold", 20);
-
-        batteryText.setText("باتری گوشی: " + level + "%");
+        batteryText.setText("🔋 " + level + "%");
 
         if (level <= threshold) {
-            batteryText.setBackground(rounded(Color.rgb(180, 45, 45), 14));
+            batteryText.setBackground(rounded(Color.rgb(180, 45, 45), 8));
         } else {
-            batteryText.setBackground(rounded(Color.rgb(37, 75, 105), 14));
+            batteryText.setBackground(rounded(Color.rgb(37, 75, 105), 8));
         }
     }
 }
