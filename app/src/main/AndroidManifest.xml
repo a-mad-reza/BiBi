@@ -11,12 +11,10 @@
     android:theme="@android:style/Theme.Material.Light.NoActionBar"
     android:supportsRtl="true">
 
-    <!-- صفحه تنظیمات -->
     <activity
         android:name=".SettingsActivity"
         android:exported="false" />
 
-    <!-- صفحه اختصاصی تماس -->
     <activity
         android:name=".CallActivity"
         android:exported="true"
@@ -25,7 +23,6 @@
         android:showWhenLocked="true"
         android:turnScreenOn="true" />
 
-    <!-- سرویس مدیریت تماس‌های ورودی و خروجی -->
     <service
         android:name=".FamilyInCallService"
         android:permission="android.permission.BIND_INCALL_SERVICE"
@@ -45,27 +42,28 @@
 
     </service>
 
-    <!-- صفحه اصلی و لانچر برنامه -->
     <activity
         android:name=".MainActivity"
         android:exported="true"
         android:screenOrientation="portrait"
         android:configChanges="orientation|screenSize|keyboardHidden">
 
-        <!-- نمایش در فهرست برنامه‌ها -->
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
 
-        <!-- امکان انتخاب به‌عنوان صفحه اصلی گوشی -->
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.HOME" />
             <category android:name="android.intent.category.DEFAULT" />
         </intent-filter>
 
-        <!-- اعلام پشتیبانی از درخواست شماره‌گیری -->
+        <intent-filter>
+            <action android:name="android.intent.action.DIAL" />
+            <category android:name="android.intent.category.DEFAULT" />
+        </intent-filter>
+
         <intent-filter>
             <action android:name="android.intent.action.DIAL" />
             <category android:name="android.intent.category.DEFAULT" />
