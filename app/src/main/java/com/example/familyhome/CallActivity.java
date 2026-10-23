@@ -25,6 +25,9 @@ public class CallActivity extends Activity {
     private Button hangupButton;
 
     private int matchedContact = -1;
+    private int lastKnownState = Call.STATE_NEW;
+    private long disconnectedAt = 0L;
+    private LinearLayout rootLayout;
 
     private final android.os.Handler handler =
             new android.os.Handler(android.os.Looper.getMainLooper());
@@ -61,7 +64,8 @@ public class CallActivity extends Activity {
     }
 
     private void buildScreen() {
-        LinearLayout root = new LinearLayout(this);
+        rootLayout = new LinearLayout(this);
+        LinearLayout root = rootLayout;
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
         root.setPadding(dp(22), dp(18), dp(22), dp(24));
@@ -73,8 +77,9 @@ public class CallActivity extends Activity {
         contactImage.setImageResource(
                 android.R.drawable.ic_menu_camera);
 
+        // عکس‌ها نسبت ۳:۴ دارند؛ قاب تماس هم همین نسبت را حفظ می‌کند.
         LinearLayout.LayoutParams imageParams =
-                new LinearLayout.LayoutParams(dp(240), dp(240));
+                new LinearLayout.LayoutParams(dp(180), dp(240));
 
         imageParams.gravity = Gravity.CENTER;
         imageParams.bottomMargin = dp(18);
@@ -245,9 +250,18 @@ public class CallActivity extends Activity {
         Call call = FamilyInCallService.getCurrentCall();
 
         if (call == null) {
-            finish();
+            if (disconnectedAt == 0L) disconnectedAt = System.currentTimeMillis();
+            rootLayout.setBackgroundColor(Color.rgb(190, 35, 35));
+            statusText.setText("تماس قطع شد");
+            statusText.setTextColor(Color.WHITE);
+            nameText.setTextColor(Color.WHITE);
+            answerButton.setVisibility(View.GONE);
+            hangupButton.setVisibility(View.GONE);
+            if (System.currentTimeMillis() - disconnectedAt > 2500L) finish();
             return;
         }
+
+        disconnectedAt = 0L;
 
         String number = "";
 
@@ -261,6 +275,22 @@ public class CallActivity extends Activity {
         loadContactForNumber(number);
 
         int state = call.getState();
+        lastKnownState = state;
+
+        // سبز فقط وقتی تماس واقعاً برقرار شده؛ هنگام شماره‌گیری/بوق رنگ خنثی.
+        if (state == Call.STATE_ACTIVE) {
+            rootLayout.setBackgroundColor(Color.rgb(35, 135, 65));
+            statusText.setTextColor(Color.WHITE);
+            nameText.setTextColor(Color.WHITE);
+        } else if (state == Call.STATE_DISCONNECTED || state == Call.STATE_DISCONNECTING) {
+            rootLayout.setBackgroundColor(Color.rgb(190, 35, 35));
+            statusText.setTextColor(Color.WHITE);
+            nameText.setTextColor(Color.WHITE);
+        } else {
+            rootLayout.setBackgroundColor(Color.rgb(240, 246, 242));
+            statusText.setTextColor(Color.rgb(35, 85, 60));
+            nameText.setTextColor(Color.BLACK);
+        }
 
         if (state == Call.STATE_RINGING) {
             statusText.setText("تماس ورودی");
@@ -275,7 +305,7 @@ public class CallActivity extends Activity {
 
         } else if (state == Call.STATE_DIALING
                 || state == Call.STATE_CONNECTING) {
-            statusText.setText("در حال برقراری تماس...");
+            statusText.setText("در حال تماس؛ منتظر پاسخ...");
             answerButton.setVisibility(View.GONE);
             hangupButton.setVisibility(View.VISIBLE);
             hangupButton.setText("لغو تماس");
@@ -286,10 +316,11 @@ public class CallActivity extends Activity {
             hangupButton.setVisibility(View.VISIBLE);
             hangupButton.setText("قطع تماس");
 
-        } else if (state == Call.STATE_DISCONNECTING) {
-            statusText.setText("در حال قطع تماس...");
+        } else if (state == Call.STATE_DISCONNECTING || state == Call.STATE_DISCONNECTED) {
+            statusText.setText("تماس قطع شد");
             answerButton.setVisibility(View.GONE);
             hangupButton.setVisibility(View.GONE);
+            if (disconnectedAt == 0L) disconnectedAt = System.currentTimeMillis();
 
         } else {
             statusText.setText("پایان تماس");
