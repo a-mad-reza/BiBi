@@ -21,13 +21,14 @@ import android.widget.TextView;
 
 public class CallActivity extends Activity {
 
+    private static CallActivity currentActivity;
+
     private TextView statusText;
     private TextView nameText;
     private ImageView contactImage;
     private Button answerButton;
     private Button hangupButton;
     private LinearLayout root;
-    private static CallActivity currentActivity;
 
     private int matchedContact = -1;
     private boolean wasActive = false;
@@ -117,12 +118,11 @@ public class CallActivity extends Activity {
                         dp(48)));
 
         statusText = new TextView(this);
-        statusText.setText("📞");
-        statusText.setTextSize(34);
+        statusText.setText("وضعیت تماس");
+        statusText.setTextSize(21);
         statusText.setGravity(Gravity.CENTER);
         statusText.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         statusText.setTextColor(Color.rgb(35, 85, 60));
-        statusText.setContentDescription("وضعیت تماس");
 
         root.addView(statusText,
                 new LinearLayout.LayoutParams(
@@ -131,10 +131,9 @@ public class CallActivity extends Activity {
 
         // دکمه پاسخ سبز؛ فقط هنگام تماس ورودی نمایش داده می‌شود.
         answerButton = new Button(this);
-        answerButton.setText("📞");
-        answerButton.setTextSize(48);
+        answerButton.setText("پاسخ دادن");
+        answerButton.setTextSize(24);
         answerButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        answerButton.setContentDescription("پاسخ به تماس؛ لمس و نگه‌داشتن");
         answerButton.setTextColor(Color.WHITE);
         answerButton.setBackground(
                 rounded(Color.rgb(35, 150, 75), 18));
@@ -159,10 +158,9 @@ public class CallActivity extends Activity {
 
         // دکمه قطع قرمز؛ کاملاً جدا از دکمه پاسخ و چسبیده به پایین.
         hangupButton = new Button(this);
-        hangupButton.setText("📴");
-        hangupButton.setTextSize(48);
+        hangupButton.setText("قطع تماس");
+        hangupButton.setTextSize(24);
         hangupButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        hangupButton.setContentDescription("قطع تماس؛ لمس و نگه‌داشتن");
         hangupButton.setTextColor(Color.WHITE);
         hangupButton.setBackground(
                 rounded(Color.rgb(190, 45, 45), 18));
@@ -331,7 +329,7 @@ public class CallActivity extends Activity {
 
         if (call == null) {
             if (wasActive && !wasDisconnected) {
-                showDisconnectedState();
+                showDisconnectedAndClose();
             } else if (!wasDisconnected) {
                 finish();
             }
@@ -354,8 +352,7 @@ public class CallActivity extends Activity {
 
         if (state == Call.STATE_RINGING) {
             wasDisconnected = false;
-            statusText.setText("🔔");
-            statusText.setTextColor(Color.rgb(35, 85, 60));
+            statusText.setText("تماس ورودی");
             root.setBackgroundColor(Color.rgb(240, 246, 242));
             answerButton.setVisibility(View.VISIBLE);
             hangupButton.setVisibility(View.GONE);
@@ -363,43 +360,39 @@ public class CallActivity extends Activity {
         } else if (state == Call.STATE_ACTIVE) {
             wasActive = true;
             wasDisconnected = false;
-            statusText.setText("📞");
+            statusText.setText("تماس برقرار است");
             statusText.setTextColor(Color.WHITE);
             root.setBackgroundColor(Color.rgb(40, 135, 65));
 
             answerButton.setVisibility(View.GONE);
             hangupButton.setVisibility(View.VISIBLE);
-            hangupButton.setText("📴");
+            hangupButton.setText("قطع تماس");
 
         } else if (state == Call.STATE_DIALING
                 || state == Call.STATE_CONNECTING) {
 
-            statusText.setText("📲");
-            statusText.setTextColor(Color.rgb(35, 85, 60));
+            statusText.setText("در حال شماره‌گیری...");
             root.setBackgroundColor(Color.rgb(240, 246, 242));
             answerButton.setVisibility(View.GONE);
             hangupButton.setVisibility(View.VISIBLE);
-            hangupButton.setText("📴");
+            hangupButton.setText("لغو تماس");
 
         } else if (state == Call.STATE_HOLDING) {
-            statusText.setText("⏸️");
-            statusText.setTextColor(Color.rgb(35, 85, 60));
+            statusText.setText("تماس در انتظار است");
             answerButton.setVisibility(View.GONE);
             hangupButton.setVisibility(View.VISIBLE);
-            hangupButton.setText("📴");
+            hangupButton.setText("قطع تماس");
 
         } else if (state == Call.STATE_DISCONNECTING
                 || state == Call.STATE_DISCONNECTED) {
-
-            wasDisconnected = true;
-            showDisconnectedState();
+            showDisconnectedAndClose();
         }
     }
 
-    private void showDisconnectedState() {
+    private void showDisconnectedAndClose() {
         if (wasDisconnected) return;
         wasDisconnected = true;
-        statusText.setText("📴");
+        statusText.setText("تماس پایان یافت");
         statusText.setTextColor(Color.WHITE);
         root.setBackgroundColor(Color.rgb(175, 45, 45));
         answerButton.setVisibility(View.GONE);
@@ -440,13 +433,7 @@ public class CallActivity extends Activity {
     public static void closeCallScreen() {
         final CallActivity activity = currentActivity;
         if (activity != null) {
-            activity.runOnUiThread(() -> {
-                if (activity.wasActive) {
-                    activity.showDisconnectedState();
-                } else {
-                    activity.finish();
-                }
-            });
+            activity.runOnUiThread(activity::showDisconnectedAndClose);
         }
     }
 }

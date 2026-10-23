@@ -848,20 +848,42 @@ public class SettingsActivity extends Activity {
         }
     }
 
-    private void applyScreenTimeout(int minutes) {
+    private boolean applyScreenTimeout(int minutes) {
         if (android.os.Build.VERSION.SDK_INT >= 23 && !Settings.System.canWrite(this)) {
             try {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
                         Uri.parse("package:" + getPackageName()));
                 startActivity(intent);
-                Toast.makeText(this, "برای اعمال زمان خاموشی، اجازه تغییر تنظیمات سیستم را فعال کن و دوباره ذخیره را بزن.", Toast.LENGTH_LONG).show();
-            } catch (Exception ignored) { }
-            return;
+                Toast.makeText(this,
+                        "در صفحه بازشده اجازه تغییر تنظیمات سیستم را فعال کن، سپس به برنامه برگرد.",
+                        Toast.LENGTH_LONG).show();
+            } catch (Exception e) {
+                Toast.makeText(this,
+                        "باز کردن تنظیم مجوز ممکن نشد. از تنظیمات گوشی، دسترسی تغییر تنظیمات سیستم را برای برنامه فعال کن.",
+                        Toast.LENGTH_LONG).show();
+            }
+            return false;
         }
         try {
             Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT,
                     minutes * 60 * 1000);
-        } catch (Exception ignored) { }
+            return true;
+        } catch (Exception ignored) {
+            Toast.makeText(this, "اعمال زمان خاموشی صفحه ممکن نشد.", Toast.LENGTH_LONG).show();
+            return false;
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (android.os.Build.VERSION.SDK_INT < 23 || Settings.System.canWrite(this)) {
+            int minutes = prefs.getInt("screen_timeout_minutes", 1);
+            try {
+                Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT,
+                        Math.max(1, Math.min(minutes, 30)) * 60 * 1000);
+            } catch (Exception ignored) { }
+        }
     }
 
     private void saveAll() {
@@ -904,14 +926,15 @@ public class SettingsActivity extends Activity {
         }
 
         editor.apply();
-        applyScreenTimeout(timeoutMinutes);
+        boolean timeoutApplied = applyScreenTimeout(timeoutMinutes);
 
         Toast.makeText(
                 this,
-                "تنظیمات ذخیره شد",
+                timeoutApplied ? "تنظیمات ذخیره شد" :
+                        "تنظیمات ذخیره شد؛ برای اعمال زمان خاموشی، مجوز را فعال کن و به برنامه برگرد.",
                 Toast.LENGTH_LONG
         ).show();
 
-        finish();
+        if (timeoutApplied) finish();
     }
 }
