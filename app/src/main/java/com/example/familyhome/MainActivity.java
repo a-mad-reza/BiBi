@@ -178,7 +178,7 @@ public class MainActivity extends Activity {
 
         TextView lockButton = makeText("🔒", 25, Color.WHITE);
         lockButton.setContentDescription("قفل صفحه");
-        lockButton.setBackground(rounded(Color.rgb(170, 45, 45), 50));
+        lockButton.setBackground(rounded(Color.rgb(37, 75, 105), 50));
         LinearLayout.LayoutParams lockParams = new LinearLayout.LayoutParams(dp(58), dp(46));
         lockParams.leftMargin = dp(8);
         topBar.addView(lockButton, lockParams);
