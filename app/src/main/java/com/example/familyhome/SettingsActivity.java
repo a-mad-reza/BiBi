@@ -7,6 +7,8 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.provider.ContactsContract;
+import android.provider.Settings;
+import android.provider.Settings.SettingNotFoundException;
 import android.content.ContentUris;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -39,6 +41,7 @@ public class SettingsActivity extends Activity {
     private int batteryThreshold = 20;
 
     private CheckBox autoSpeakerCheckBox;
+    private EditText screenTimeoutMinutes;
 
     private static final int PHOTO_REQUEST = 200;
     private static final int DEFAULT_DIALER_REQUEST = 300;
@@ -253,6 +256,18 @@ public class SettingsActivity extends Activity {
         );
 
         root.addView(autoSpeakerCheckBox);
+
+        TextView timeoutTitle = makeText("خاموش شدن خودکار صفحه", 19, Color.rgb(30, 65, 90));
+        root.addView(timeoutTitle);
+        TextView timeoutHint = makeText("زمان به دقیقه؛ برای مثال ۱، ۲، ۵ یا ۱۰ دقیقه", 14, Color.DKGRAY);
+        root.addView(timeoutHint);
+        screenTimeoutMinutes = new EditText(this);
+        screenTimeoutMinutes.setSingleLine(true);
+        screenTimeoutMinutes.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        screenTimeoutMinutes.setGravity(Gravity.CENTER);
+        screenTimeoutMinutes.setHint("دقیقه (پیش‌فرض ۱)");
+        screenTimeoutMinutes.setText(String.valueOf(prefs.getInt("screen_timeout_minutes", 1)));
+        root.addView(screenTimeoutMinutes, new LinearLayout.LayoutParams(-1, dp(52)));
 
         addDivider(root);
 
@@ -833,6 +848,22 @@ public class SettingsActivity extends Activity {
         }
     }
 
+    private void applyScreenTimeout(int minutes) {
+        if (android.os.Build.VERSION.SDK_INT >= 23 && !Settings.System.canWrite(this)) {
+            try {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                        Uri.parse("package:" + getPackageName()));
+                startActivity(intent);
+                Toast.makeText(this, "برای اعمال زمان خاموشی، اجازه تغییر تنظیمات سیستم را فعال کن و دوباره ذخیره را بزن.", Toast.LENGTH_LONG).show();
+            } catch (Exception ignored) { }
+            return;
+        }
+        try {
+            Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT,
+                    minutes * 60 * 1000);
+        } catch (Exception ignored) { }
+    }
+
     private void saveAll() {
         SharedPreferences.Editor editor = prefs.edit();
 
@@ -858,6 +889,13 @@ public class SettingsActivity extends Activity {
                 batteryThreshold
         );
 
+        int timeoutMinutes = 1;
+        try {
+            timeoutMinutes = Integer.parseInt(screenTimeoutMinutes.getText().toString().trim());
+        } catch (Exception ignored) { }
+        timeoutMinutes = Math.max(1, Math.min(timeoutMinutes, 30));
+        editor.putInt("screen_timeout_minutes", timeoutMinutes);
+
         if (autoSpeakerCheckBox != null) {
             editor.putBoolean(
                     "auto_speaker",
@@ -866,6 +904,7 @@ public class SettingsActivity extends Activity {
         }
 
         editor.apply();
+        applyScreenTimeout(timeoutMinutes);
 
         Toast.makeText(
                 this,
