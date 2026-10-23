@@ -1,8 +1,13 @@
 package com.example.familyhome;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.provider.ContactsContract;
+import android.content.ContentUris;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -37,17 +42,25 @@ public class SettingsActivity extends Activity {
 
     private static final int PHOTO_REQUEST = 200;
     private static final int DEFAULT_DIALER_REQUEST = 300;
+    private static final int CONTACT_PICK_REQUEST = 400;
+    private static final int CONTACT_PERMISSION_REQUEST = 401;
+
+    private int pendingContactIndex = -1;
 
     private int dp(float value) {
-        return (int) (value * getResources()
-                .getDisplayMetrics().density + 0.5f);
+        return (int) (
+                value * getResources().getDisplayMetrics().density + 0.5f
+        );
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        prefs = getSharedPreferences("family_home", MODE_PRIVATE);
+        prefs = getSharedPreferences(
+                "family_home",
+                MODE_PRIVATE
+        );
 
         holdDuration = prefs.getInt("hold_ms", 1800);
         batteryThreshold = prefs.getInt("battery_threshold", 20);
@@ -64,11 +77,13 @@ public class SettingsActivity extends Activity {
 
     private TextView makeText(String text, int size, int color) {
         TextView t = new TextView(this);
+
         t.setText(text);
         t.setTextSize(size);
         t.setTextColor(color);
         t.setGravity(Gravity.CENTER);
         t.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+
         return t;
     }
 
@@ -77,7 +92,13 @@ public class SettingsActivity extends Activity {
 
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(14), dp(12), dp(14), dp(24));
+        root.setPadding(
+                dp(14),
+                dp(12),
+                dp(14),
+                dp(24)
+        );
+
         root.setBackgroundColor(Color.rgb(240, 245, 248));
 
         scroll.addView(root);
@@ -88,13 +109,17 @@ public class SettingsActivity extends Activity {
                 Color.rgb(30, 65, 90)
         );
 
-        root.addView(title, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(55)
-        ));
+        root.addView(
+                title,
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        dp(55)
+                )
+        );
 
         TextView instruction = makeText(
-                "نام و شماره را وارد کنید و برای انتخاب عکس دکمهٔ عکس را بزنید.",
+                "برای هر دکمه مخاطب را از دفترچه تلفن انتخاب کنید؛ " +
+                        "امکان ویرایش دستی هم وجود دارد.",
                 15,
                 Color.DKGRAY
         );
@@ -103,9 +128,14 @@ public class SettingsActivity extends Activity {
         root.addView(instruction);
 
         Button dialerButton = new Button(this);
-        dialerButton.setText("انتخاب برنامه به‌عنوان تلفن پیش‌فرض");
+
+        dialerButton.setText(
+                "انتخاب برنامه به‌عنوان تلفن پیش‌فرض"
+        );
+
         dialerButton.setTextSize(17);
         dialerButton.setTextColor(Color.WHITE);
+
         dialerButton.setBackground(
                 rounded(Color.rgb(35, 90, 145), 14)
         );
@@ -117,6 +147,7 @@ public class SettingsActivity extends Activity {
                 );
 
         dialerParams.topMargin = dp(16);
+
         root.addView(dialerButton, dialerParams);
 
         dialerButton.setOnClickListener(
@@ -124,7 +155,8 @@ public class SettingsActivity extends Activity {
         );
 
         TextView dialerInfo = makeText(
-                "برای نمایش صفحه تماس اختصاصی، ممکن است لازم باشد این برنامه را به‌عنوان تلفن پیش‌فرض انتخاب کنید.",
+                "برای نمایش صفحه تماس اختصاصی، ممکن است لازم باشد " +
+                        "این برنامه را به‌عنوان تلفن پیش‌فرض انتخاب کنید.",
                 14,
                 Color.DKGRAY
         );
@@ -147,13 +179,23 @@ public class SettingsActivity extends Activity {
 
         root.addView(holdTitle);
 
-        TextView holdValue = makeText("", 17, Color.DKGRAY);
+        TextView holdValue = makeText(
+                "",
+                17,
+                Color.DKGRAY
+        );
+
         root.addView(holdValue);
 
         SeekBar holdSeek = new SeekBar(this);
+
         holdSeek.setMax(2300);
+
         holdSeek.setProgress(
-                Math.max(0, Math.min(2300, holdDuration - 700))
+                Math.max(
+                        0,
+                        Math.min(2300, holdDuration - 700)
+                )
         );
 
         root.addView(holdSeek);
@@ -174,18 +216,21 @@ public class SettingsActivity extends Activity {
                     }
 
                     @Override
-                    public void onStartTrackingTouch(SeekBar seekBar) {
+                    public void onStartTrackingTouch(
+                            SeekBar seekBar
+                    ) {
                     }
 
                     @Override
-                    public void onStopTrackingTouch(SeekBar seekBar) {
+                    public void onStopTrackingTouch(
+                            SeekBar seekBar
+                    ) {
                     }
                 }
         );
 
         addDivider(root);
 
-        // تنظیمات بلندگوی خودکار
         TextView speakerTitle = makeText(
                 "تنظیمات صدای تماس",
                 19,
@@ -219,13 +264,23 @@ public class SettingsActivity extends Activity {
 
         root.addView(batteryTitle);
 
-        TextView batteryValue = makeText("", 17, Color.DKGRAY);
+        TextView batteryValue = makeText(
+                "",
+                17,
+                Color.DKGRAY
+        );
+
         root.addView(batteryValue);
 
         SeekBar batterySeek = new SeekBar(this);
+
         batterySeek.setMax(50);
+
         batterySeek.setProgress(
-                Math.max(0, Math.min(50, batteryThreshold))
+                Math.max(
+                        0,
+                        Math.min(50, batteryThreshold)
+                )
         );
 
         root.addView(batterySeek);
@@ -246,11 +301,15 @@ public class SettingsActivity extends Activity {
                     }
 
                     @Override
-                    public void onStartTrackingTouch(SeekBar seekBar) {
+                    public void onStartTrackingTouch(
+                            SeekBar seekBar
+                    ) {
                     }
 
                     @Override
-                    public void onStopTrackingTouch(SeekBar seekBar) {
+                    public void onStopTrackingTouch(
+                            SeekBar seekBar
+                    ) {
                     }
                 }
         );
@@ -260,6 +319,7 @@ public class SettingsActivity extends Activity {
         saveButton.setText("ذخیره همه تنظیمات");
         saveButton.setTextSize(20);
         saveButton.setTextColor(Color.WHITE);
+
         saveButton.setBackground(
                 rounded(Color.rgb(35, 110, 75), 14)
         );
@@ -274,31 +334,43 @@ public class SettingsActivity extends Activity {
 
         root.addView(saveButton, saveParams);
 
-        saveButton.setOnClickListener(v -> saveAll());
+        saveButton.setOnClickListener(
+                v -> saveAll()
+        );
 
         Button backButton = new Button(this);
+
         backButton.setText("بازگشت");
 
-        root.addView(backButton, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(52)
-        ));
+        root.addView(
+                backButton,
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        dp(52)
+                )
+        );
 
-        backButton.setOnClickListener(v -> finish());
+        backButton.setOnClickListener(
+                v -> finish()
+        );
 
         setContentView(scroll);
     }
 
     private void updateHoldValue(TextView view) {
-        view.setText(String.format(
-                java.util.Locale.getDefault(),
-                "%.1f ثانیه",
-                holdDuration / 1000.0
-        ));
+        view.setText(
+                String.format(
+                        java.util.Locale.getDefault(),
+                        "%.1f ثانیه",
+                        holdDuration / 1000.0
+                )
+        );
     }
 
     private void updateBatteryValue(TextView view) {
-        view.setText("هشدار در " + batteryThreshold + " درصد");
+        view.setText(
+                "هشدار در " + batteryThreshold + " درصد"
+        );
     }
 
     private void requestDefaultDialer() {
@@ -314,7 +386,9 @@ public class SettingsActivity extends Activity {
 
         try {
             TelecomManager telecomManager =
-                    (TelecomManager) getSystemService(TELECOM_SERVICE);
+                    (TelecomManager) getSystemService(
+                            TELECOM_SERVICE
+                    );
 
             if (telecomManager == null) {
                 Toast.makeText(
@@ -362,12 +436,24 @@ public class SettingsActivity extends Activity {
         }
     }
 
-    private void addContactForm(LinearLayout root, int index) {
+    private void addContactForm(
+            LinearLayout root,
+            int index
+    ) {
         LinearLayout card = new LinearLayout(this);
 
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(12), dp(10), dp(12), dp(12));
-        card.setBackground(rounded(Color.WHITE, 14));
+
+        card.setPadding(
+                dp(12),
+                dp(10),
+                dp(12),
+                dp(12)
+        );
+
+        card.setBackground(
+                rounded(Color.WHITE, 14)
+        );
 
         LinearLayout.LayoutParams cardParams =
                 new LinearLayout.LayoutParams(
@@ -387,43 +473,82 @@ public class SettingsActivity extends Activity {
 
         card.addView(title);
 
+        Button chooseContactButton = new Button(this);
+
+        chooseContactButton.setText(
+                "انتخاب از دفترچه تلفن"
+        );
+
+        card.addView(
+                chooseContactButton,
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        dp(48)
+                )
+        );
+
+        chooseContactButton.setOnClickListener(
+                v -> chooseContact(index)
+        );
+
         names[index] = new EditText(this);
+
         names[index].setSingleLine(true);
         names[index].setTextSize(18);
         names[index].setHint("نام مخاطب");
+
         names[index].setText(
                 prefs.getString("name_" + index, "")
         );
 
-        card.addView(names[index], new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(54)
-        ));
+        card.addView(
+                names[index],
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        dp(54)
+                )
+        );
 
         phones[index] = new EditText(this);
+
         phones[index].setSingleLine(true);
         phones[index].setTextSize(18);
         phones[index].setHint("شماره تلفن");
         phones[index].setInputType(3);
+
         phones[index].setText(
                 prefs.getString("phone_" + index, "")
         );
 
-        card.addView(phones[index], new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(54)
-        ));
+        card.addView(
+                phones[index],
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        dp(54)
+                )
+        );
 
         Button photoButton = new Button(this);
-        photoButton.setText("انتخاب عکس از گالری");
 
-        card.addView(photoButton, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(48)
-        ));
+        photoButton.setText(
+                "انتخاب عکس از گالری"
+        );
+
+        card.addView(
+                photoButton,
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        dp(48)
+                )
+        );
+
+        String savedPhoto = prefs.getString(
+                "photo_" + index,
+                ""
+        );
 
         photoLabels[index] = makeText(
-                prefs.getString("photo_" + index, "").isEmpty()
+                savedPhoto.isEmpty()
                         ? "عکسی انتخاب نشده"
                         : "برای تغییر عکس، دکمه بالا را بزنید",
                 13,
@@ -437,8 +562,14 @@ public class SettingsActivity extends Activity {
         photoButton.setOnClickListener(v -> {
             selectedPhotoIndex = contactIndex;
 
-            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            Intent intent = new Intent(
+                    Intent.ACTION_OPEN_DOCUMENT
+            );
+
+            intent.addCategory(
+                    Intent.CATEGORY_OPENABLE
+            );
+
             intent.setType("image/*");
 
             intent.addFlags(
@@ -446,13 +577,169 @@ public class SettingsActivity extends Activity {
                             | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
             );
 
-            startActivityForResult(intent, PHOTO_REQUEST);
+            startActivityForResult(
+                    intent,
+                    PHOTO_REQUEST
+            );
         });
+    }
+
+    private void chooseContact(int index) {
+        pendingContactIndex = index;
+
+        if (android.os.Build.VERSION.SDK_INT >= 23
+                && checkSelfPermission(
+                        android.Manifest.permission.READ_CONTACTS
+                ) != PackageManager.PERMISSION_GRANTED) {
+
+            requestPermissions(
+                    new String[]{
+                            android.Manifest.permission.READ_CONTACTS
+                    },
+                    CONTACT_PERMISSION_REQUEST
+            );
+
+            return;
+        }
+
+        launchContactPicker();
+    }
+
+    private void launchContactPicker() {
+        try {
+            Intent intent = new Intent(
+                    Intent.ACTION_PICK,
+                    ContactsContract.CommonDataKinds.Phone.CONTENT_URI
+            );
+
+            startActivityForResult(
+                    intent,
+                    CONTACT_PICK_REQUEST
+            );
+
+        } catch (Exception e) {
+            Toast.makeText(
+                    this,
+                    "دفترچه تلفن در دسترس نیست.",
+                    Toast.LENGTH_LONG
+            ).show();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode,
+            String[] permissions,
+            int[] grantResults
+    ) {
+        super.onRequestPermissionsResult(
+                requestCode,
+                permissions,
+                grantResults
+        );
+
+        if (requestCode == CONTACT_PERMISSION_REQUEST) {
+            if (grantResults.length > 0
+                    && grantResults[0]
+                    == PackageManager.PERMISSION_GRANTED) {
+
+                launchContactPicker();
+
+            } else {
+                Toast.makeText(
+                        this,
+                        "برای انتخاب مخاطب، اجازه دسترسی به مخاطبین لازم است.",
+                        Toast.LENGTH_LONG
+                ).show();
+            }
+        }
+    }
+
+    private void readPickedContact(Uri uri) {
+        if (uri == null || pendingContactIndex < 0) {
+            return;
+        }
+
+        Cursor cursor = null;
+
+        try {
+            String[] projection = {
+                    ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                    ContactsContract.CommonDataKinds.Phone.NUMBER,
+                    ContactsContract.CommonDataKinds.Phone.CONTACT_ID
+            };
+
+            cursor = getContentResolver().query(
+                    uri,
+                    projection,
+                    null,
+                    null,
+                    null
+            );
+
+            if (cursor != null && cursor.moveToFirst()) {
+                String name = cursor.getString(0);
+                String number = cursor.getString(1);
+                long contactId = cursor.getLong(2);
+
+                names[pendingContactIndex].setText(
+                        name == null ? "" : name
+                );
+
+                phones[pendingContactIndex].setText(
+                        number == null ? "" : number
+                );
+
+                Uri photoUri = Uri.withAppendedPath(
+                        ContentUris.withAppendedId(
+                                ContactsContract.Contacts.CONTENT_URI,
+                                contactId
+                        ),
+                        ContactsContract.Contacts.Photo.CONTENT_DIRECTORY
+                );
+
+                prefs.edit()
+                        .putLong(
+                                "contact_id_" + pendingContactIndex,
+                                contactId
+                        )
+                        .putString(
+                                "photo_" + pendingContactIndex,
+                                photoUri.toString()
+                        )
+                        .apply();
+
+                photoLabels[pendingContactIndex].setText(
+                        "مخاطب و عکس از دفترچه تلفن انتخاب شد"
+                );
+
+                Toast.makeText(
+                        this,
+                        "مخاطب انتخاب شد",
+                        Toast.LENGTH_SHORT
+                ).show();
+            }
+
+        } catch (Exception e) {
+            Toast.makeText(
+                    this,
+                    "خواندن اطلاعات مخاطب ناموفق بود.",
+                    Toast.LENGTH_LONG
+            ).show();
+
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
     }
 
     private void addDivider(LinearLayout root) {
         View divider = new View(this);
-        divider.setBackgroundColor(Color.LTGRAY);
+
+        divider.setBackgroundColor(
+                Color.LTGRAY
+        );
 
         LinearLayout.LayoutParams params =
                 new LinearLayout.LayoutParams(
@@ -472,9 +759,19 @@ public class SettingsActivity extends Activity {
             int resultCode,
             Intent data
     ) {
-        super.onActivityResult(requestCode, resultCode, data);
+        super.onActivityResult(
+                requestCode,
+                resultCode,
+                data
+        );
 
-        if (requestCode == PHOTO_REQUEST
+        if (requestCode == CONTACT_PICK_REQUEST
+                && resultCode == RESULT_OK
+                && data != null) {
+
+            readPickedContact(data.getData());
+
+        } else if (requestCode == PHOTO_REQUEST
                 && resultCode == RESULT_OK
                 && data != null
                 && data.getData() != null
@@ -497,7 +794,9 @@ public class SettingsActivity extends Activity {
                     )
                     .apply();
 
-            photoLabels[selectedPhotoIndex].setText("عکس انتخاب شد");
+            photoLabels[selectedPhotoIndex].setText(
+                    "عکس انتخاب شد"
+            );
 
             Toast.makeText(
                     this,
@@ -506,10 +805,11 @@ public class SettingsActivity extends Activity {
             ).show();
 
         } else if (requestCode == DEFAULT_DIALER_REQUEST) {
-
             if (android.os.Build.VERSION.SDK_INT >= 23) {
                 TelecomManager telecomManager =
-                        (TelecomManager) getSystemService(TELECOM_SERVICE);
+                        (TelecomManager) getSystemService(
+                                TELECOM_SERVICE
+                        );
 
                 if (telecomManager != null
                         && getPackageName().equals(
@@ -548,8 +848,15 @@ public class SettingsActivity extends Activity {
             );
         }
 
-        editor.putInt("hold_ms", holdDuration);
-        editor.putInt("battery_threshold", batteryThreshold);
+        editor.putInt(
+                "hold_ms",
+                holdDuration
+        );
+
+        editor.putInt(
+                "battery_threshold",
+                batteryThreshold
+        );
 
         if (autoSpeakerCheckBox != null) {
             editor.putBoolean(
