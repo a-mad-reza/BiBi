@@ -4,13 +4,16 @@ import android.app.Activity;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.telecom.Call;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.os.Handler;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -23,20 +26,27 @@ public class CallActivity extends Activity {
     private ImageView contactImage;
     private Button answerButton;
     private Button hangupButton;
+    private LinearLayout root;
 
     private int matchedContact = -1;
-    private int lastKnownState = Call.STATE_NEW;
-    private long disconnectedAt = 0L;
-    private LinearLayout rootLayout;
+    private boolean wasActive = false;
+    private boolean wasDisconnected = false;
 
-    private final android.os.Handler handler =
-            new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Handler handler =
+            new Handler(android.os.Looper.getMainLooper());
 
     private final Runnable refreshRunnable = new Runnable() {
         @Override
         public void run() {
             updateCallScreen();
             handler.postDelayed(this, 500);
+        }
+    };
+
+    private final Runnable closeAfterDisconnect = new Runnable() {
+        @Override
+        public void run() {
+            finish();
         }
     };
 
@@ -63,12 +73,18 @@ public class CallActivity extends Activity {
         updateCallScreen();
     }
 
+    private GradientDrawable rounded(int color, int radius) {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(color);
+        bg.setCornerRadius(dp(radius));
+        return bg;
+    }
+
     private void buildScreen() {
-        rootLayout = new LinearLayout(this);
-        LinearLayout root = rootLayout;
+        root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setGravity(Gravity.CENTER);
-        root.setPadding(dp(22), dp(18), dp(22), dp(24));
+        root.setGravity(Gravity.CENTER_HORIZONTAL);
+        root.setPadding(dp(22), dp(12), dp(22), 0);
         root.setBackgroundColor(Color.rgb(240, 246, 242));
 
         contactImage = new ImageView(this);
@@ -77,12 +93,12 @@ public class CallActivity extends Activity {
         contactImage.setImageResource(
                 android.R.drawable.ic_menu_camera);
 
-        // عکس‌ها نسبت ۳:۴ دارند؛ قاب تماس هم همین نسبت را حفظ می‌کند.
+        // نسبت تصویر 3:4؛ ارتفاع 4/3 عرض است.
         LinearLayout.LayoutParams imageParams =
-                new LinearLayout.LayoutParams(dp(180), dp(240));
+                new LinearLayout.LayoutParams(dp(225), dp(300));
 
         imageParams.gravity = Gravity.CENTER;
-        imageParams.bottomMargin = dp(18);
+        imageParams.bottomMargin = dp(10);
 
         root.addView(contactImage, imageParams);
 
@@ -94,50 +110,108 @@ public class CallActivity extends Activity {
         nameText.setTextColor(Color.BLACK);
 
         root.addView(nameText,
-                new LinearLayout.LayoutParams(-1, dp(52)));
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        dp(48)));
 
         statusText = new TextView(this);
         statusText.setText("وضعیت تماس");
-        statusText.setTextSize(20);
+        statusText.setTextSize(21);
         statusText.setGravity(Gravity.CENTER);
+        statusText.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         statusText.setTextColor(Color.rgb(35, 85, 60));
 
-        LinearLayout.LayoutParams statusParams =
-                new LinearLayout.LayoutParams(-1, dp(54));
+        root.addView(statusText,
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        dp(52)));
 
-        statusParams.bottomMargin = dp(18);
-        root.addView(statusText, statusParams);
-
+        // دکمه پاسخ سبز؛ فقط هنگام تماس ورودی نمایش داده می‌شود.
         answerButton = new Button(this);
         answerButton.setText("پاسخ دادن");
         answerButton.setTextSize(24);
         answerButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         answerButton.setTextColor(Color.WHITE);
-        answerButton.setBackgroundColor(Color.rgb(35, 150, 75));
+        answerButton.setBackground(
+                rounded(Color.rgb(35, 150, 75), 18));
 
-        answerButton.setOnClickListener(
-                v -> FamilyInCallService.answerCall());
+        setHoldToActivate(answerButton, 700,
+                () -> FamilyInCallService.answerCall());
 
-        root.addView(answerButton,
-                new LinearLayout.LayoutParams(-1, dp(82)));
+        LinearLayout.LayoutParams answerParams =
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        dp(82));
 
+        answerParams.bottomMargin = dp(10);
+        root.addView(answerButton, answerParams);
+
+        // فضای انعطاف‌پذیر؛ دکمه قطع تماس را به پایین صفحه می‌برد.
+        View spacer = new View(this);
+
+        root.addView(spacer,
+                new LinearLayout.LayoutParams(
+                        1, 0, 1f));
+
+        // دکمه قطع قرمز؛ کاملاً جدا از دکمه پاسخ و چسبیده به پایین.
         hangupButton = new Button(this);
         hangupButton.setText("قطع تماس");
         hangupButton.setTextSize(24);
         hangupButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         hangupButton.setTextColor(Color.WHITE);
-        hangupButton.setBackgroundColor(Color.rgb(190, 45, 45));
+        hangupButton.setBackground(
+                rounded(Color.rgb(190, 45, 45), 18));
 
-        hangupButton.setOnClickListener(
-                v -> FamilyInCallService.endCall());
+        setHoldToActivate(hangupButton, 1000,
+                () -> FamilyInCallService.endCall());
 
         LinearLayout.LayoutParams hangupParams =
-                new LinearLayout.LayoutParams(-1, dp(82));
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        dp(86));
 
-        hangupParams.topMargin = dp(12);
+        hangupParams.topMargin = dp(8);
+        hangupParams.bottomMargin = 0;
+
         root.addView(hangupButton, hangupParams);
 
         setContentView(root);
+    }
+
+    private void setHoldToActivate(
+            Button button, long holdMs, Runnable action) {
+
+        Handler holdHandler = new Handler(
+                android.os.Looper.getMainLooper());
+
+        final boolean[] triggered = {false};
+
+        final Runnable trigger = () -> {
+            triggered[0] = true;
+            button.setAlpha(0.65f);
+            action.run();
+        };
+
+        button.setOnTouchListener((v, event) -> {
+            switch (event.getAction()) {
+
+                case MotionEvent.ACTION_DOWN:
+                    triggered[0] = false;
+                    button.setAlpha(0.8f);
+                    holdHandler.removeCallbacks(trigger);
+                    holdHandler.postDelayed(trigger, holdMs);
+                    return true;
+
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    holdHandler.removeCallbacks(trigger);
+                    button.setAlpha(1f);
+                    return true;
+
+                default:
+                    return true;
+            }
+        });
     }
 
     private String normalize(String value) {
@@ -147,7 +221,6 @@ public class CallActivity extends Activity {
 
         String result = value.replaceAll("[^0-9]", "");
 
-        // تبدیل شماره بین‌المللی ایران به قالب قابل مقایسه
         if (result.startsWith("0098")) {
             result = "0" + result.substring(4);
         } else if (result.startsWith("98") && result.length() >= 12) {
@@ -157,7 +230,9 @@ public class CallActivity extends Activity {
         return result;
     }
 
-    private int findContact(SharedPreferences prefs, String number) {
+    private int findContact(
+            SharedPreferences prefs, String number) {
+
         String normalizedNumber = normalize(number);
 
         if (normalizedNumber.isEmpty()) {
@@ -176,7 +251,6 @@ public class CallActivity extends Activity {
                 return i;
             }
 
-            // تطبیق شماره با یا بدون پیش‌شماره، در صورت کافی بودن طول
             if (savedNumber.length() >= 10
                     && normalizedNumber.length() >= 10
                     && (savedNumber.endsWith(normalizedNumber)
@@ -202,7 +276,6 @@ public class CallActivity extends Activity {
 
         int found = findContact(prefs, number);
 
-        // در صورت تغییر اطلاعات ذخیره‌شده، صفحه را دوباره به‌روزرسانی کن.
         if (found == matchedContact) {
             return;
         }
@@ -220,7 +293,8 @@ public class CallActivity extends Activity {
 
             contactImage.setImageDrawable(null);
             contactImage.setColorFilter(null);
-            contactImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            contactImage.setScaleType(
+                    ImageView.ScaleType.CENTER_CROP);
 
             boolean loaded = false;
 
@@ -238,6 +312,7 @@ public class CallActivity extends Activity {
             }
 
         } else {
+            // اگر مخاطب ناشناس باشد، شماره نمایش داده می‌شود.
             nameText.setText(
                     number == null || number.trim().isEmpty()
                             ? "شماره ناشناس" : number);
@@ -250,23 +325,19 @@ public class CallActivity extends Activity {
         Call call = FamilyInCallService.getCurrentCall();
 
         if (call == null) {
-            if (disconnectedAt == 0L) disconnectedAt = System.currentTimeMillis();
-            rootLayout.setBackgroundColor(Color.rgb(190, 35, 35));
-            statusText.setText("تماس قطع شد");
-            statusText.setTextColor(Color.WHITE);
-            nameText.setTextColor(Color.WHITE);
-            answerButton.setVisibility(View.GONE);
-            hangupButton.setVisibility(View.GONE);
-            if (System.currentTimeMillis() - disconnectedAt > 2500L) finish();
+            if (wasActive || wasDisconnected) {
+                return;
+            }
+
+            finish();
             return;
         }
-
-        disconnectedAt = 0L;
 
         String number = "";
 
         if (call.getDetails() != null
                 && call.getDetails().getHandle() != null) {
+
             number = call.getDetails()
                     .getHandle()
                     .getSchemeSpecificPart();
@@ -275,37 +346,30 @@ public class CallActivity extends Activity {
         loadContactForNumber(number);
 
         int state = call.getState();
-        lastKnownState = state;
-
-        // سبز فقط وقتی تماس واقعاً برقرار شده؛ هنگام شماره‌گیری/بوق رنگ خنثی.
-        if (state == Call.STATE_ACTIVE) {
-            rootLayout.setBackgroundColor(Color.rgb(35, 135, 65));
-            statusText.setTextColor(Color.WHITE);
-            nameText.setTextColor(Color.WHITE);
-        } else if (state == Call.STATE_DISCONNECTED || state == Call.STATE_DISCONNECTING) {
-            rootLayout.setBackgroundColor(Color.rgb(190, 35, 35));
-            statusText.setTextColor(Color.WHITE);
-            nameText.setTextColor(Color.WHITE);
-        } else {
-            rootLayout.setBackgroundColor(Color.rgb(240, 246, 242));
-            statusText.setTextColor(Color.rgb(35, 85, 60));
-            nameText.setTextColor(Color.BLACK);
-        }
 
         if (state == Call.STATE_RINGING) {
+            wasDisconnected = false;
             statusText.setText("تماس ورودی");
+            root.setBackgroundColor(Color.rgb(240, 246, 242));
             answerButton.setVisibility(View.VISIBLE);
             hangupButton.setVisibility(View.GONE);
 
         } else if (state == Call.STATE_ACTIVE) {
+            wasActive = true;
+            wasDisconnected = false;
             statusText.setText("تماس برقرار است");
+            statusText.setTextColor(Color.WHITE);
+            root.setBackgroundColor(Color.rgb(40, 135, 65));
+
             answerButton.setVisibility(View.GONE);
             hangupButton.setVisibility(View.VISIBLE);
             hangupButton.setText("قطع تماس");
 
         } else if (state == Call.STATE_DIALING
                 || state == Call.STATE_CONNECTING) {
-            statusText.setText("در حال تماس؛ منتظر پاسخ...");
+
+            statusText.setText("در حال شماره‌گیری...");
+            root.setBackgroundColor(Color.rgb(240, 246, 242));
             answerButton.setVisibility(View.GONE);
             hangupButton.setVisibility(View.VISIBLE);
             hangupButton.setText("لغو تماس");
@@ -316,16 +380,19 @@ public class CallActivity extends Activity {
             hangupButton.setVisibility(View.VISIBLE);
             hangupButton.setText("قطع تماس");
 
-        } else if (state == Call.STATE_DISCONNECTING || state == Call.STATE_DISCONNECTED) {
-            statusText.setText("تماس قطع شد");
-            answerButton.setVisibility(View.GONE);
-            hangupButton.setVisibility(View.GONE);
-            if (disconnectedAt == 0L) disconnectedAt = System.currentTimeMillis();
+        } else if (state == Call.STATE_DISCONNECTING
+                || state == Call.STATE_DISCONNECTED) {
 
-        } else {
-            statusText.setText("پایان تماس");
+            wasDisconnected = true;
+            statusText.setText("تماس پایان یافت");
+            statusText.setTextColor(Color.WHITE);
+            root.setBackgroundColor(Color.rgb(175, 45, 45));
+
             answerButton.setVisibility(View.GONE);
             hangupButton.setVisibility(View.GONE);
+
+            handler.removeCallbacks(closeAfterDisconnect);
+            handler.postDelayed(closeAfterDisconnect, 2500);
         }
     }
 
@@ -346,12 +413,15 @@ public class CallActivity extends Activity {
     @Override
     protected void onDestroy() {
         handler.removeCallbacks(refreshRunnable);
+        handler.removeCallbacks(closeAfterDisconnect);
         super.onDestroy();
     }
 
     public static void refreshFromService() {
+        // برای سازگاری با FamilyInCallService نگه داشته شده است.
     }
 
     public static void closeCallScreen() {
+        // برای سازگاری با FamilyInCallService نگه داشته شده است.
     }
 }
