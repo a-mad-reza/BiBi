@@ -19,7 +19,12 @@ public class FamilyInCallService extends InCallService {
         public void onStateChanged(Call call, int state) {
             CallActivity.refreshFromService();
 
-            if (state == Call.STATE_ACTIVE) {
+            if (state == Call.STATE_DIALING
+                    || state == Call.STATE_CONNECTING
+                    || state == Call.STATE_RINGING) {
+                prepareCallAudio();
+            } else if (state == Call.STATE_ACTIVE) {
+                // اگر تنظیم بلندگو روشن است، مسیر صدا را حفظ کن.
                 applyAutoSpeakerIfEnabled();
             }
         }
@@ -76,48 +81,40 @@ public class FamilyInCallService extends InCallService {
         startActivity(intent);
     }
 
-    private void applyAutoSpeakerIfEnabled() {
-        SharedPreferences prefs =
-                getSharedPreferences("family_home", MODE_PRIVATE);
+    private void prepareCallAudio() {
+        SharedPreferences prefs = getSharedPreferences("family_home", MODE_PRIVATE);
+        boolean autoSpeaker = prefs.getBoolean("auto_speaker", true);
 
-        if (!prefs.getBoolean("auto_speaker", true)) {
-            return;
-        }
-
-        new android.os.Handler(
-                android.os.Looper.getMainLooper()
-        ).postDelayed(() -> {
-
-            if (currentCall == null
-                    || currentCall.getState() != Call.STATE_ACTIVE) {
-                return;
+        try {
+            AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+            if (audioManager != null) {
+                int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL);
+                audioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL, maxVolume, 0);
             }
-
-            try {
+            // وقتی تماس در حال زنگ خوردن/بوق خوردن است هم بلندگو را فعال کن.
+            if (autoSpeaker && currentCall != null
+                    && (currentCall.getState() == Call.STATE_DIALING
+                    || currentCall.getState() == Call.STATE_CONNECTING
+                    || currentCall.getState() == Call.STATE_RINGING)) {
                 setAudioRoute(CallAudioState.ROUTE_SPEAKER);
-
-                AudioManager audioManager =
-                        (AudioManager) getSystemService(AUDIO_SERVICE);
-
-                if (audioManager != null) {
-                    int maxVolume = audioManager.getStreamMaxVolume(
-                            AudioManager.STREAM_VOICE_CALL
-                    );
-
-                    audioManager.setStreamVolume(
-                            AudioManager.STREAM_VOICE_CALL,
-                            maxVolume,
-                            0
-                    );
-                }
-
-                CallActivity.refreshFromService();
-
-            } catch (Exception ignored) {
-                // ممکن است بعضی گوشی‌ها تغییر مسیر صدا را محدود کنند.
             }
+        } catch (Exception ignored) {
+        }
+    }
 
-        }, 300);
+    private void applyAutoSpeakerIfEnabled() {
+        SharedPreferences prefs = getSharedPreferences("family_home", MODE_PRIVATE);
+        if (!prefs.getBoolean("auto_speaker", true)) return;
+        try {
+            setAudioRoute(CallAudioState.ROUTE_SPEAKER);
+            AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+            if (audioManager != null) {
+                audioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL,
+                        audioManager.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL), 0);
+            }
+            CallActivity.refreshFromService();
+        } catch (Exception ignored) {
+        }
     }
 
     public static Call getCurrentCall() {
