@@ -23,7 +23,8 @@ public class CallActivity extends Activity {
     private ImageView contactImage;
     private Button answerButton;
     private Button hangupButton;
-    private int matchedContact = -2;
+
+    private int matchedContact = -1;
 
     private final android.os.Handler handler =
             new android.os.Handler(android.os.Looper.getMainLooper());
@@ -48,8 +49,7 @@ public class CallActivity extends Activity {
         getWindow().addFlags(
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
                         | WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
-                        | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
-        );
+                        | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
 
         if (Build.VERSION.SDK_INT >= 21) {
             getWindow().setStatusBarColor(Color.rgb(20, 70, 50));
@@ -70,12 +70,15 @@ public class CallActivity extends Activity {
         contactImage = new ImageView(this);
         contactImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
         contactImage.setBackgroundColor(Color.rgb(218, 231, 239));
-        contactImage.setImageResource(android.R.drawable.ic_menu_camera);
+        contactImage.setImageResource(
+                android.R.drawable.ic_menu_camera);
 
         LinearLayout.LayoutParams imageParams =
                 new LinearLayout.LayoutParams(dp(240), dp(240));
+
         imageParams.gravity = Gravity.CENTER;
         imageParams.bottomMargin = dp(18);
+
         root.addView(contactImage, imageParams);
 
         nameText = new TextView(this);
@@ -96,6 +99,7 @@ public class CallActivity extends Activity {
 
         LinearLayout.LayoutParams statusParams =
                 new LinearLayout.LayoutParams(-1, dp(54));
+
         statusParams.bottomMargin = dp(18);
         root.addView(statusText, statusParams);
 
@@ -105,9 +109,9 @@ public class CallActivity extends Activity {
         answerButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         answerButton.setTextColor(Color.WHITE);
         answerButton.setBackgroundColor(Color.rgb(35, 150, 75));
+
         answerButton.setOnClickListener(
-                v -> FamilyInCallService.answerCall()
-        );
+                v -> FamilyInCallService.answerCall());
 
         root.addView(answerButton,
                 new LinearLayout.LayoutParams(-1, dp(82)));
@@ -118,12 +122,13 @@ public class CallActivity extends Activity {
         hangupButton.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         hangupButton.setTextColor(Color.WHITE);
         hangupButton.setBackgroundColor(Color.rgb(190, 45, 45));
+
         hangupButton.setOnClickListener(
-                v -> FamilyInCallService.endCall()
-        );
+                v -> FamilyInCallService.endCall());
 
         LinearLayout.LayoutParams hangupParams =
                 new LinearLayout.LayoutParams(-1, dp(82));
+
         hangupParams.topMargin = dp(12);
         root.addView(hangupButton, hangupParams);
 
@@ -134,30 +139,65 @@ public class CallActivity extends Activity {
         if (value == null) {
             return "";
         }
-        return value.replaceAll("[^0-9+]", "");
+
+        String result = value.replaceAll("[^0-9]", "");
+
+        // تبدیل شماره بین‌المللی ایران به قالب قابل مقایسه
+        if (result.startsWith("0098")) {
+            result = "0" + result.substring(4);
+        } else if (result.startsWith("98") && result.length() >= 12) {
+            result = "0" + result.substring(2);
+        }
+
+        return result;
+    }
+
+    private int findContact(SharedPreferences prefs, String number) {
+        String normalizedNumber = normalize(number);
+
+        if (normalizedNumber.isEmpty()) {
+            return -1;
+        }
+
+        for (int i = 0; i < 12; i++) {
+            String savedNumber =
+                    normalize(prefs.getString("phone_" + i, ""));
+
+            if (savedNumber.isEmpty()) {
+                continue;
+            }
+
+            if (savedNumber.equals(normalizedNumber)) {
+                return i;
+            }
+
+            // تطبیق شماره با یا بدون پیش‌شماره، در صورت کافی بودن طول
+            if (savedNumber.length() >= 10
+                    && normalizedNumber.length() >= 10
+                    && (savedNumber.endsWith(normalizedNumber)
+                    || normalizedNumber.endsWith(savedNumber))) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private void showDefaultImage() {
+        contactImage.setImageDrawable(null);
+        contactImage.setColorFilter(null);
+        contactImage.setScaleType(ImageView.ScaleType.CENTER);
+        contactImage.setImageResource(
+                android.R.drawable.ic_menu_camera);
     }
 
     private void loadContactForNumber(String number) {
         SharedPreferences prefs =
                 getSharedPreferences("family_home", MODE_PRIVATE);
 
-        String normalizedNumber = normalize(number);
-        int found = -1;
+        int found = findContact(prefs, number);
 
-        for (int i = 0; i < 12; i++) {
-            String savedNumber =
-                    normalize(prefs.getString("phone_" + i, ""));
-
-            if (!savedNumber.isEmpty()
-                    && !normalizedNumber.isEmpty()
-                    && (savedNumber.equals(normalizedNumber)
-                    || savedNumber.endsWith(normalizedNumber)
-                    || normalizedNumber.endsWith(savedNumber))) {
-                found = i;
-                break;
-            }
-        }
-
+        // در صورت تغییر اطلاعات ذخیره‌شده، صفحه را دوباره به‌روزرسانی کن.
         if (found == matchedContact) {
             return;
         }
@@ -169,41 +209,35 @@ public class CallActivity extends Activity {
 
             nameText.setText(
                     name == null || name.trim().isEmpty()
-                            ? "مخاطب"
-                            : name.trim()
-            );
+                            ? "مخاطب" : name.trim());
 
             String photo = prefs.getString("photo_" + found, "");
 
             contactImage.setImageDrawable(null);
+            contactImage.setColorFilter(null);
+            contactImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
 
-            boolean photoLoaded = false;
+            boolean loaded = false;
 
-            if (photo != null && !photo.isEmpty()) {
+            if (photo != null && !photo.trim().isEmpty()) {
                 try {
                     contactImage.setImageURI(Uri.parse(photo));
-                    photoLoaded = contactImage.getDrawable() != null;
+                    loaded = contactImage.getDrawable() != null;
                 } catch (Exception ignored) {
-                    photoLoaded = false;
+                    loaded = false;
                 }
             }
 
-            if (!photoLoaded) {
-                contactImage.setImageResource(
-                        android.R.drawable.ic_menu_camera
-                );
+            if (!loaded) {
+                showDefaultImage();
             }
 
         } else {
             nameText.setText(
-                    number == null || number.isEmpty()
-                            ? "شماره ناشناس"
-                            : number
-            );
+                    number == null || number.trim().isEmpty()
+                            ? "شماره ناشناس" : number);
 
-            contactImage.setImageResource(
-                    android.R.drawable.ic_menu_camera
-            );
+            showDefaultImage();
         }
     }
 
@@ -219,7 +253,8 @@ public class CallActivity extends Activity {
 
         if (call.getDetails() != null
                 && call.getDetails().getHandle() != null) {
-            number = call.getDetails().getHandle()
+            number = call.getDetails()
+                    .getHandle()
                     .getSchemeSpecificPart();
         }
 
@@ -266,6 +301,7 @@ public class CallActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+
         handler.removeCallbacks(refreshRunnable);
         handler.post(refreshRunnable);
     }
