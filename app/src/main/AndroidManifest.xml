@@ -18,7 +18,7 @@
         <receiver
             android:name=".FamilyDeviceAdminReceiver"
             android:label="قفل صفحهٔ تماس با خانواده"
-            android:description="اجازه برای خاموش‌کردن صفحه با دکمهٔ داخل برنامه"
+            
             android:permission="android.permission.BIND_DEVICE_ADMIN"
             android:exported="true">
 
