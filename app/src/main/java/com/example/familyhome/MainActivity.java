@@ -3,6 +3,8 @@ package com.example.familyhome;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.admin.DevicePolicyManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -62,6 +64,9 @@ public class MainActivity extends Activity {
             getWindow().setNavigationBarColor(
                     Color.rgb(24, 45, 65));
         }
+
+        getWindow().addFlags(
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         hideSystemBars();
         buildHome();
@@ -161,19 +166,26 @@ public class MainActivity extends Activity {
         root.setPadding(dp(3), dp(3), dp(3), dp(3));
         root.setBackgroundColor(Color.BLACK);
 
+        LinearLayout topBar = new LinearLayout(this);
+        topBar.setOrientation(LinearLayout.HORIZONTAL);
+        topBar.setGravity(Gravity.CENTER_VERTICAL);
+
         batteryText = makeText("", 16, Color.WHITE);
         batteryText.setPadding(dp(8), 0, dp(8), 0);
-        batteryText.setBackground(
-                rounded(Color.rgb(37, 75, 105), 8));
+        batteryText.setBackground(rounded(Color.rgb(37, 75, 105), 8));
+        batteryText.setOnClickListener(v -> batteryTapped());
+        topBar.addView(batteryText, new LinearLayout.LayoutParams(0, dp(46), 1f));
 
-        batteryText.setOnClickListener(
-                v -> batteryTapped());
+        TextView lockButton = makeText("🔒", 25, Color.WHITE);
+        lockButton.setContentDescription("قفل صفحه");
+        lockButton.setBackground(rounded(Color.rgb(170, 45, 45), 50));
+        LinearLayout.LayoutParams lockParams = new LinearLayout.LayoutParams(dp(58), dp(46));
+        lockParams.leftMargin = dp(8);
+        topBar.addView(lockButton, lockParams);
+        lockButton.setOnClickListener(v -> lockScreen());
 
-        root.addView(
-                batteryText,
-                new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        dp(34)));
+        root.addView(topBar, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(46)));
 
         GridLayout grid = new GridLayout(this);
         grid.setColumnCount(3);
@@ -319,6 +331,31 @@ public class MainActivity extends Activity {
         });
 
         return tile;
+    }
+
+    private void lockScreen() {
+        ComponentName admin = new ComponentName(this, FamilyDeviceAdminReceiver.class);
+        DevicePolicyManager dpm = (DevicePolicyManager) getSystemService(DEVICE_POLICY_SERVICE);
+        if (dpm != null && dpm.isAdminActive(admin)) {
+            try {
+                dpm.lockNow();
+            } catch (SecurityException e) {
+                Toast.makeText(this, "قفل صفحه در این گوشی مجاز نیست.", Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("فعال‌کردن قفل صفحه")
+                .setMessage("برای خاموش‌کردن صفحه با این دکمه، یک‌بار اجازهٔ مدیریت قفل صفحه را فعال کن. بعد از آن با دکمهٔ فیزیکی گوشی می‌توانی صفحه را روشن کنی.")
+                .setNegativeButton("لغو", null)
+                .setPositiveButton("فعال‌سازی", (dialog, which) -> {
+                    Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
+                    intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, admin);
+                    intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                            "این اجازه فقط برای قفل‌کردن صفحه با دکمهٔ داخل برنامه استفاده می‌شود.");
+                    startActivity(intent);
+                }).show();
     }
 
     private void batteryTapped() {
