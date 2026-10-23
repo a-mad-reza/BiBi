@@ -1,84 +1,100 @@
-<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.CALL_PHONE" />
-<uses-permission android:name="android.permission.READ_PHONE_STATE" />
-<uses-permission android:name="android.permission.READ_CALL_LOG" />
-<uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
-<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-<uses-permission android:name="android.permission.WAKE_LOCK" />
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-<application
-    android:allowBackup="true"
-    android:label="تماس با خانواده"
-    android:supportsRtl="true"
-    android:theme="@android:style/Theme.Material.Light.NoActionBar">
+    <uses-permission android:name="android.permission.CALL_PHONE" />
 
-    <activity
-        android:name=".MainActivity"
-        android:configChanges="orientation|screenSize|keyboardHidden"
-        android:exported="true"
-        android:screenOrientation="portrait">
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
 
-        <intent-filter>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="android.intent.category.LAUNCHER" />
-        </intent-filter>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
-        <intent-filter>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="android.intent.category.HOME" />
-            <category android:name="android.intent.category.DEFAULT" />
-        </intent-filter>
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
 
-    </activity>
+    <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
 
-    <activity
-        android:name=".SettingsActivity"
-        android:exported="false" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
-    <activity
-        android:name=".DialActivity"
-        android:exported="true"
-        android:screenOrientation="portrait">
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-        <intent-filter>
-            <action android:name="android.intent.action.DIAL" />
-            <category android:name="android.intent.category.DEFAULT" />
-        </intent-filter>
+    <application
+        android:allowBackup="true"
+        android:label="تماس با خانواده"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
 
-        <intent-filter>
-            <action android:name="android.intent.action.DIAL" />
-            <category android:name="android.intent.category.DEFAULT" />
-            <data android:scheme="tel" />
-        </intent-filter>
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="true"
+            android:screenOrientation="portrait">
 
-    </activity>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
 
-    <activity
-        android:name=".CallActivity"
-        android:excludeFromRecents="true"
-        android:exported="true"
-        android:screenOrientation="portrait"
-        android:showWhenLocked="true"
-        android:turnScreenOn="true" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
 
-    <service
-        android:name=".FamilyInCallService"
-        android:exported="true"
-        android:permission="android.permission.BIND_INCALL_SERVICE">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
 
-        <meta-data
-            android:name="android.telecom.IN_CALL_SERVICE_UI"
-            android:value="true" />
+                <category android:name="android.intent.category.HOME" />
 
-        <meta-data
-            android:name="android.telecom.IN_CALL_SERVICE_RINGING"
-            android:value="true" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
 
-        <intent-filter>
-            <action android:name="android.telecom.InCallService" />
-        </intent-filter>
+        </activity>
 
-    </service>
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false" />
 
-</application>
+        <activity
+            android:name=".DialActivity"
+            android:exported="true"
+            android:screenOrientation="portrait">
+
+            <intent-filter>
+                <action android:name="android.intent.action.DIAL" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.DIAL" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:scheme="tel" />
+            </intent-filter>
+
+        </activity>
+
+        <activity
+            android:name=".CallActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true" />
+
+        <service
+            android:name=".FamilyInCallService"
+            android:exported="true"
+            android:permission="android.permission.BIND_INCALL_SERVICE">
+
+            <meta-data
+                android:name="android.telecom.IN_CALL_SERVICE_UI"
+                android:value="true" />
+
+            <meta-data
+                android:name="android.telecom.IN_CALL_SERVICE_RINGING"
+                android:value="true" />
+
+            <intent-filter>
+                <action android:name="android.telecom.InCallService" />
+            </intent-filter>
+
+        </service>
+
+    </application>
 
 </manifest>
