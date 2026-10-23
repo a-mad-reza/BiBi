@@ -63,9 +63,6 @@ public class MainActivity extends Activity {
                     Color.rgb(24, 45, 65));
         }
 
-        getWindow().addFlags(
-                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
         hideSystemBars();
         buildHome();
     }
