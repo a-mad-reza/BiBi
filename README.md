@@ -1,7 +1,7 @@
 BiBi Launcher
 
 <p align="center">
-  <img src="screenshots/icon.png" width="180" alt="BiBi Launcher icon">
+  <img src="screenshots/icon.jpg" width="180" alt="BiBi Launcher icon">
 </p>A simpler way to stay connected. ❤️
 
 BiBi is a simple, photo-based Android launcher designed to make smartphones easier to use for elderly people and anyone who finds traditional smartphone interfaces difficult.
@@ -13,11 +13,11 @@ With a minimal home screen and large contact photos, BiBi aims to make reaching 
 📱 Screenshots
 
 <p align="center">
-  <img src="[screenshots/1.png](https://raw.githubusercontent.com/a-mad-reza/BiBi/refs/heads/main/screenshots/1.jpg)" width="220" alt="BiBi Launcher screenshot 1">
-  <img src="screenshots/2.png" width="220" alt="BiBi Launcher screenshot 2">
-  <img src="screenshots/3.png" width="220" alt="BiBi Launcher screenshot 3">
-  <img src="screenshots/4.png" width="220" alt="BiBi Launcher screenshot 4">
-  <img src="screenshots/5.png" width="220" alt="BiBi Launcher screenshot 5">
+  <img src="screenshots/1.jpg" width="220" alt="BiBi Launcher screenshot 1">
+  <img src="screenshots/2.jpg" width="220" alt="BiBi Launcher screenshot 2">
+  <img src="screenshots/3.jpg" width="220" alt="BiBi Launcher screenshot 3">
+  <img src="screenshots/4.jpg" width="220" alt="BiBi Launcher screenshot 4">
+  <img src="screenshots/5.jpg" width="220" alt="BiBi Launcher screenshot 5">
 </p>---
 
 🌷 Why BiBi?
@@ -118,11 +118,11 @@ Please do not share private contact information or personal photos in public iss
 📱 تصاویر برنامه
 
 <p align="center">
-  <img src="screenshots/1.png" width="220" alt="تصویر اول بی‌بی لانچر">
-  <img src="screenshots/2.png" width="220" alt="تصویر دوم بی‌بی لانچر">
-  <img src="screenshots/3.png" width="220" alt="تصویر سوم بی‌بی لانچر">
-  <img src="screenshots/4.png" width="220" alt="تصویر چهارم بی‌بی لانچر">
-  <img src="screenshots/5.png" width="220" alt="تصویر پنجم بی‌بی لانچر">
+  <img src="screenshots/1.jpg" width="220" alt="تصویر اول بی‌بی لانچر">
+  <img src="screenshots/2.jpg" width="220" alt="تصویر دوم بی‌بی لانچر">
+  <img src="screenshots/3.jpg" width="220" alt="تصویر سوم بی‌بی لانچر">
+  <img src="screenshots/4.jpg" width="220" alt="تصویر چهارم بی‌بی لانچر">
+  <img src="screenshots/5.jpg" width="220" alt="تصویر پنجم بی‌بی لانچر">
 </p>---
 
 🌷 چرا BiBi؟
