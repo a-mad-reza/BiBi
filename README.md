@@ -13,7 +13,7 @@ With a minimal home screen and large contact photos, BiBi aims to make reaching 
 📱 Screenshots
 
 <p align="center">
-  <img src="screenshots/1.png" width="220" alt="BiBi Launcher screenshot 1">
+  <img src="[screenshots/1.png](https://raw.githubusercontent.com/a-mad-reza/BiBi/refs/heads/main/screenshots/1.jpg)" width="220" alt="BiBi Launcher screenshot 1">
   <img src="screenshots/2.png" width="220" alt="BiBi Launcher screenshot 2">
   <img src="screenshots/3.png" width="220" alt="BiBi Launcher screenshot 3">
   <img src="screenshots/4.png" width="220" alt="BiBi Launcher screenshot 4">
